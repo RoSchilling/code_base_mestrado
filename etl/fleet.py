@@ -63,11 +63,14 @@ def frota_por_demanda_todas_linhas(
 ) -> pd.DataFrame:
     resultados = []
 
+    mco_por_linha = dict(tuple(mco.groupby(col_linha_mco)))
+    mco_estrutura = mco.iloc[0:0] 
+
     for linha, grupo in headway.groupby(col_linha_gtfs):
         hora_pico, n_partidas = pico_frequencia(grupo)
 
         tempo_ciclo = tempo_ciclo_no_pico(
-            mco, hora_pico, linha,
+            mco_por_linha.get(linha, mco_estrutura), hora_pico, linha,
             col_linha=col_linha_mco, col_inicio=col_inicio, col_fim=col_fim,
             col_data=col_data, col_hora=col_hora,
         )
@@ -76,7 +79,7 @@ def frota_por_demanda_todas_linhas(
 
         resultados.append({
                 'linha': linha,
-                'frota_necessaria': n_k,
+                'frota_necessaria': math.ceil(n_k),
                 'hora_pico_frequencia': hora_pico,
                 'n_partidas_pico': n_partidas,
                 'tempo_ciclo_pico_min': tempo_ciclo,

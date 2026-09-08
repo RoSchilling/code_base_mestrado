@@ -28,18 +28,10 @@ def load_gtfs_tables(gtfs_dir: str | Path,
         **gtfs_dir**: diretorio com os arquivos GTFS salvos.
     
         **files**: nome(s) de arquivo, com ou sem ".txt" (ex: "routes" ou "routes.txt" — os dois funcionam). 
-        Pode ser uma string única ou uma lista.
     
         **chunk_size**: se None (padrão), lê o arquivo inteiro de uma vez, 
-        recomendado para arquivos pequenos (routes, trips, calendar). Se definido,
-        lê em lotes desse tamanho, aplicando o filtro (se houver) a cada
-        lote antes de concatenar — use isso pra stop_times.txt.
     
         **filtros**: dict opcional {nome_do_arquivo: (coluna, valores_aceitos)}.
-        Só entra em ação para arquivos lidos com chunk_size definido; para
-        arquivos lidos de uma vez, o filtro é aplicado depois, sobre o
-        DataFrame já completo (menos vantagem de memória, mas ainda funciona
-        se você quiser usar o mesmo parâmetro pros dois casos).
     
         Retorna: dict {nome_do_arquivo_sem_extensão: DataFrame}.
     """
@@ -84,7 +76,18 @@ def load_gtfs_tables(gtfs_dir: str | Path,
 
     return dict_gtfs
 
-def load_mco_table(mco_dir: str | Path, filtro_linhas: list[str] | str | None = None, **kwargs) -> pd.DataFrame:
+def load_mco_table(mco_dir: str | Path, 
+                   filtro_linhas: list[str] | str | None = None, 
+                   filtros: dict[str, object] = None,
+                   **kwargs
+                   ) -> pd.DataFrame:
+    """
+    Carrega os arquivos referente ao mapa de controle operacional (O mapa de controle operacional armazena as informações de todas as viagens)
+
+    **mco_dir**: local em que os arquivos estão salvos
+    **filtro_linhas**: linhas que deverão ser salvas.
+    **filtros**: dict com a coluna do filtro e a informação a ser filtrada
+    """
     mco_dir = Path(mco_dir)
 
     list_mco = []
@@ -95,6 +98,16 @@ def load_mco_table(mco_dir: str | Path, filtro_linhas: list[str] | str | None = 
         df.columns = [col.strip().lower() for col in df.columns]
         if filtro_linhas is not None:
             df = df[df['linha'].isin(filtro_linhas)]
+
+        if filtros is not None:
+            coluna, valores = filtros
+            if isinstance(valores, list):
+                df = df[df[coluna].isin(valores)]
+
+            else:
+                df = df[df[coluna] == valores]
+            
+
 
         list_mco.append(df)
 
