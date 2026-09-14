@@ -55,6 +55,43 @@ def headway_por_hora(horarios: pd.DataFrame, col_route_name: str = "route_short_
     contagem["headway_min"] = 60 / contagem["n_partidas"]
     return contagem
 
+def horario_chegada(
+        trips_filtrados: pd.DataFrame,
+        stop_times: pd.DataFrame,
+        service_id: Literal['uteis', 'sabado', 'domingo'] = None,
+        dict_service_id: dict = None
+) -> pd.DataFrame:
+
+    if dict_service_id == None:
+        raise ValueError('Informe o dicionário do service_id')
+
+    stop_times = stop_times.astype({'stop_sequence' : int})
+    ultimas_paradas = stop_times.loc[stop_times.groupby('trip_id')['stop_sequence'].idxmax()]
+    ultimas_paradas = ultimas_paradas.reset_index(drop=True)
+
+    qnt_service_id = len(trips_filtrados['service_id'].unique())
+
+    if qnt_service_id == 1:
+        pass
+    elif service_id == None:
+        print('service_id não informado, será considerado o dia útil')
+        trips_filtrados = trips_filtrados[trips_filtrados['service_id'] == dict_service_id['uteis']]
+
+    else:
+        if service_id not in dict_service_id.keys():
+            raise ValueError('Informe um tipo de dia válido')
+
+        trips_filtrados = trips_filtrados[trips_filtrados['service_id'] == dict_service_id[service_id]]
+
+
+    resultado = ultimas_paradas.merge(
+        trips_filtrados[["trip_id", "trip_headsign", "service_id", "route_short_name"]],
+        on="trip_id",
+    )
+    resultado = resultado.sort_values("arrival_time").reset_index(drop=True)
+
+    return resultado
+
 
 
     
